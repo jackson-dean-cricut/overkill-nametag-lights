@@ -35,8 +35,8 @@ Turn your ESP devices into a synchronized LED light show! 🎪✨
 ## 🛠️ Hardware Requirements
 
 ### Per Device
-- ESP32 development board
-- WS2812B LED strip
+- ESP8266 development board
+- WS2811 LED strip
 - 6x momentary push buttons
 - 74HC595 shift register
 - 6x status LEDs
@@ -45,19 +45,19 @@ Turn your ESP devices into a synchronized LED light show! 🎪✨
 ## 📌 Pin Configuration
 
 ```
-ESP32 Pin Map
+ESP8266 Pin Map
 ┌────────────────┐
-│ LED Strip  : 5 │
-│ Shift Data :13 │    Button Layout
-│ Shift Clock:14 │    ┌─┐ ┌─┐ ┌─┐
+│ LED Strip  : 2 │
+│ Shift Data :16 │    Button Layout
+│ Shift Clock:15 │    ┌─┐ ┌─┐ ┌─┐
 │ Shift Latch:15 │    │1│ │2│ │3│
 │ Buttons:       │    └─┘ └─┘ └─┘
-│  1: 16        │    ┌─┐ ┌─┐ ┌─┐
-│  2: 17        │    │4│ │5│ │6│
-│  3: 18        │    └─┘ └─┘ └─┘
-│  4: 19        │
-│  5: 21        │    Status LEDs
-│  6: 22        │    ○ ○ ○ ○ ○ ○
+│  1: 0          │    ┌─┐ ┌─┐ ┌─┐
+│  2: 4          │    │4│ │5│ │6│
+│  3: 5          │    └─┘ └─┘ └─┘
+│  4: 12         │
+│  5: 13         │    Status LEDs
+│  6: 14         │    ○ ○ ○ ○ ○ ○
 └────────────────┘
 ```
 
@@ -72,10 +72,10 @@ git clone https://github.com/jackson-dean-cricut/overkill-nametag-lights.git
 ```bash
 # In Arduino IDE:
 - FastLED
-- ESP32 Board Support
+- ESP8266 Board Support
 ```
 
-3. Upload the code to your ESP32s
+3. Upload the code to your ESP8266s
    - They'll automatically organize themselves into a mesh
    - First device to boot becomes the coordinator
 
@@ -126,7 +126,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - FastLED library developers
-- ESP32 community
+- ESP8266 community
 - Coffee ☕
 
 ## 🤝 Contributing
