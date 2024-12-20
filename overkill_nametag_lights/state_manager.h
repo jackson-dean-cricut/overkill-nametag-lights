@@ -41,6 +41,7 @@ public:
     void toggleOutput(int index);
     void setColorCycling(int index, bool enabled);
     void updateHue(int index);
+    void update();
     void resetOutput(int index);
     const OutputState& getState(int index) const;
     bool isActive(int index) const;

@@ -79,10 +79,7 @@ void setup() {
 void loop() {
     buttonManager.update();
     
-    // Update animations if in animation mode
-    if (stateManager.isInAnimationMode()) {
-        stateManager.updateAnimations();
-    }
+    stateManager.update();
     
     // Update physical outputs
     outputManager.update();

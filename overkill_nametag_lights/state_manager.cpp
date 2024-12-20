@@ -27,6 +27,21 @@ void StateManager::updateHue(int index) {
     }
 }
 
+void StateManager::update() {
+    // Handle animation mode updates
+    if (animState.isAnimating) {
+        updateAnimations();
+        return;  // Skip individual updates in animation mode
+    }
+    
+    // Handle individual LED updates (color cycling)
+    for (int i = 0; i < MAX_OUTPUTS; i++) {
+        if (outputs[i].isColorCycling && outputs[i].isOn) {
+            updateHue(i);
+        }
+    }
+}
+
 const OutputState& StateManager::getState(int index) const {
     static OutputState defaultState = {false, 0, false};
     if (index >= MAX_OUTPUTS) return defaultState;
