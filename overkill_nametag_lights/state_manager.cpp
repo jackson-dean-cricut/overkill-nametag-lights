@@ -105,6 +105,7 @@ void StateManager::updateRainbow() {
     animState.baseHue += animState.speed;
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].hue = animState.baseHue + outputs[i].animationOffset;
+        outputs[i].isOn = true;
     }
 }
 
@@ -113,6 +114,7 @@ void StateManager::updateWave() {
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         uint8_t wave = sin8(animState.baseHue + outputs[i].animationOffset);
         outputs[i].hue = wave;
+        outputs[i].isOn = true;
     }
 }
 
@@ -121,6 +123,7 @@ void StateManager::updatePulse() {
     uint8_t pulse = sin8(animState.baseHue);
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].hue = pulse + outputs[i].animationOffset;
+        outputs[i].isOn = true;
     }
 }
 
@@ -128,6 +131,9 @@ void StateManager::updateSparkle() {
     if (random8() < 32) {  // Random sparkle probability
         int led = random8(MAX_OUTPUTS);
         outputs[led].hue = random8();
+    }
+    for (int i = 0; i < MAX_OUTPUTS; i++) {
+        outputs[i].isOn = true;
     }
 }
 
