@@ -28,6 +28,7 @@ void updateButtons() {
         if (currentState && !buttonStates[i]) {
             buttonPressTime[i] = currentTime;
             buttonLongPress[i] = false;
+            buttonDoublePress[i] = false;
             
             // Check for double press - if second press happens within window
             if (pressCount[i] == 1 && (currentTime - lastReleaseTime[i] < DOUBLE_PRESS_TIME)) {
@@ -43,7 +44,6 @@ void updateButtons() {
             pressCount[i]++;  // Increment press count on every release
             
             if (buttonDoublePress[i]) {
-                buttonDoublePress[i] = false;  // Clear double press on release
                 pressCount[i] = 0;  // Reset counter after double press handled
             }
         }
@@ -60,6 +60,7 @@ void updateButtons() {
         // Clear old press counts
         if (currentTime - lastReleaseTime[i] > DOUBLE_PRESS_TIME && !currentState) {
             pressCount[i] = 0;
+            buttonDoublePress[i] = false;
         }
         
         buttonStates[i] = currentState;
