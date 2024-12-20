@@ -32,7 +32,6 @@ void updateButtons() {
             
             // Check for double press - if second press happens within window
             if (pressCount[i] == 1 && (currentTime - lastReleaseTime[i] < DOUBLE_PRESS_TIME)) {
-                Serial.println("Double press");
                 buttonDoublePress[i] = true;
                 pressCount[i] = 0;  // Reset count after double press detected
             }
