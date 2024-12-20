@@ -36,3 +36,9 @@ bool StateManager::isActive(int index) const {
     if (index >= MAX_OUTPUTS) return false;
     return outputs[index].isOn;
 }
+
+void StateManager::resetOutput(int index) {
+    if (index >= MAX_OUTPUTS) return;
+    outputs[index] = {false, 0, false};  // Reset to default state
+    // For future networking: stateChanged = true;
+}

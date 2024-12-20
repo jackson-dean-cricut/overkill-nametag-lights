@@ -32,6 +32,7 @@ public:
     void toggleOutput(int index);
     void setColorCycling(int index, bool enabled);
     void updateHue(int index);
+    void resetOutput(int index);  // New method for double-press reset
     const OutputState& getState(int index) const;
     bool isActive(int index) const;
     

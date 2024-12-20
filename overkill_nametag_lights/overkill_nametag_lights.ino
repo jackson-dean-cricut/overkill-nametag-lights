@@ -54,12 +54,20 @@ void loop() {
     for (int i = 0; i < NUM_BUTTONS; i++) {
         bool currentPress = isButtonPressed(i);
         bool currentLongPress = isLongPress(i);
+        bool currentDoublePress = isDoublePress(i);
         
         // Handle button release
         if (!currentPress && prevButtonStates[i]) {
-            if (!prevLongPress[i]) {
-                stateManager.toggleOutput(i);
+            if (!prevLongPress[i] && !currentDoublePress) {
+                Serial.println("Single press in main");
+                stateManager.toggleOutput(i);  // Single press toggle
             }
+        }
+        
+        // Handle double press (triggers on second press down)
+        if (currentDoublePress) {
+            Serial.println("Double press in main");
+            stateManager.resetOutput(i);  // Reset to default state
         }
         
         // Handle long press color cycling
@@ -80,7 +88,7 @@ void loop() {
     // Update physical outputs based on state
     for (int i = 0; i < NUM_BUTTONS; i++) {
         const OutputState& state = stateManager.getState(i);
-        updateLED(i, state.isOn, state.isColorCycling);
+        updateLED(i, state.isOn, state.hue);
         updateShiftRegister(i + 1, state.isOn);
     }
     

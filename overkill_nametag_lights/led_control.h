@@ -15,7 +15,7 @@ extern uint8_t ledHues[NUM_LEDS];
 extern bool ledActive[NUM_LEDS];
 
 void setupLEDs();
-void updateLED(int index, bool isOn, bool cycleColor = false);
+void updateLED(int index, bool isOn, uint8_t hue);
 void showLEDs();
 
 #endif

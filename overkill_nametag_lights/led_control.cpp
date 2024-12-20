@@ -11,18 +11,13 @@ void setupLEDs() {
   FastLED.show();
 }
 
-void updateLED(int index, bool isOn, bool cycleColor) {
+void updateLED(int index, bool isOn, uint8_t hue) {
   if (index >= NUM_LEDS) return;
   
   ledActive[index] = isOn;
   
   if (isOn) {
-    if (cycleColor) {
-      ledHues[index] += 2;  // Increment hue for color cycling
-      leds[index] = CHSV(ledHues[index], 255, 255);
-    } else {
-      leds[index] = CHSV(ledHues[index], 255, 255);
-    }
+    leds[index] = CHSV(hue, 255, 255);
   } else {
     leds[index] = CRGB::Black;
   }
