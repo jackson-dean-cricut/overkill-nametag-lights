@@ -50,51 +50,66 @@ void loop() {
     // Handle button inputs
     updateButtons();
     
-    // Update state based on button inputs
+    // Check for animation mode toggle
     for (int i = 0; i < NUM_BUTTONS; i++) {
         bool currentPress = isButtonPressed(i);
         bool currentLongPress = isLongPress(i);
         bool currentDoublePress = isDoublePress(i);
         
-        // Handle button release
-        if (!currentPress && prevButtonStates[i]) {
-            if (!prevLongPress[i] && !currentDoublePress) {
-                Serial.println("Single press in main");
-                stateManager.toggleOutput(i);  // Single press toggle
-            }
-        }
-        
-        // Handle double press (triggers on second press down)
         if (currentDoublePress) {
-            Serial.println("Double press in main");
-            stateManager.resetOutput(i);  // Reset to default state
+            if (!stateManager.isInAnimationMode()) {
+                // Enter animation mode
+                stateManager.toggleAnimationMode();
+            } else {
+                // Exit animation mode
+                stateManager.toggleAnimationMode();
+            }
+        } else if (stateManager.isInAnimationMode() && currentPress && !prevButtonStates[i]) {
+            // In animation mode, single press changes pattern
+            stateManager.setAnimationPattern(i);
+        } else if (!stateManager.isInAnimationMode()) {
+            // Normal mode behavior
+            if (!currentPress && prevButtonStates[i]) {
+                if (!prevLongPress[i]) {
+                    stateManager.toggleOutput(i);
+                }
+            }
+            
+            if (currentLongPress && !prevLongPress[i]) {
+                stateManager.setColorCycling(i, true);
+            } else if (!currentPress && prevButtonStates[i] && prevLongPress[i]) {
+                stateManager.setColorCycling(i, false);
+            }
+            
+            stateManager.updateHue(i);
         }
         
-        // Handle long press color cycling
-        if (currentLongPress && !prevLongPress[i]) {
-            stateManager.setColorCycling(i, true);
-        } else if (!currentPress && prevButtonStates[i] && prevLongPress[i]) {
-            stateManager.setColorCycling(i, false);
-        }
-        
-        // Update colors if cycling
-        stateManager.updateHue(i);
-        
-        // Store previous states
         prevButtonStates[i] = currentPress;
         prevLongPress[i] = currentLongPress;
     }
     
-    // Update physical outputs based on state
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        const OutputState& state = stateManager.getState(i);
-        updateLED(i, state.isOn, state.hue);
-        updateShiftRegister(i + 1, state.isOn);
+    // Update animations if in animation mode
+    if (stateManager.isInAnimationMode()) {
+        stateManager.updateAnimations();
     }
     
-    // Show updates
+    // Update physical outputs
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        const OutputState& state = stateManager.getState(i);
+        if (stateManager.isInAnimationMode()) {
+            // WS2811 LEDs show the animation
+            updateLED(i, state.isOn, state.hue);
+            // Shift register LEDs show which animation is active
+            updateShiftRegister(i + 1, (i == stateManager.getAnimationPattern()));
+        } else {
+            // Normal mode - both LED types show button state
+            updateLED(i, state.isOn, state.hue);
+            updateShiftRegister(i + 1, state.isOn);
+        }
+    }
+    
     showLEDs();
     updateAllShiftRegisters();
     
-    delay(50);
+    delay(20);  // Slightly faster update rate for smoother animations
 }
