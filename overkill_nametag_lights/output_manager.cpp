@@ -1,22 +1,30 @@
 #include "output_manager.h"
-#include "buttons.h"
 #include "led_control.h"
 #include "shift_register.h"
+#include "button_manager.h"
 
-void updateOutputs() {
-  // Update both LED strip and shift register based on button states
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-    bool isPressed = isButtonPressed(i);
-    bool isLongPressed = isLongPress(i);
+void OutputManager::begin(StateManager& sm) {
+    stateManager = &sm;
+    setupLEDs();
+    setupShiftRegister();
+}
+
+void OutputManager::update() {
+    // Update physical outputs based on current state
+    for (int i = 0; i < ButtonManager::NUM_BUTTONS; i++) {
+        const OutputState& state = stateManager->getState(i);
+        if (stateManager->isInAnimationMode()) {
+            // WS2811 LEDs show the animation
+            updateLED(i, state.isOn, state.hue);
+            // Shift register LEDs show which animation is active
+            updateShiftRegister(i + 1, (i == stateManager->getAnimationPattern()));
+        } else {
+            // Normal mode - both LED types show button state
+            updateLED(i, state.isOn, state.hue);
+            updateShiftRegister(i + 1, state.isOn);
+        }
+    }
     
-    // Update WS2811 LED strip
-    updateLED(i, isPressed, isLongPressed);
-    
-    // Update shift register LED
-    updateShiftRegister(i + 1, isPressed);  // +2 offset as per working shift register code
-  }
-  
-  // Show all updates
-  showLEDs();
-  updateAllShiftRegisters();
+    showLEDs();
+    updateAllShiftRegisters();
 }

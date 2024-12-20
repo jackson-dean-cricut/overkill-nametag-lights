@@ -7,13 +7,14 @@ bool ledActive[NUM_LEDS] = {false};
 void setupLEDs() {
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
+  delay(1); // allow system to stabilize
+  FastLED.setMaxRefreshRate(400); // limit updates to 400Hz
   FastLED.clear();
   FastLED.show();
 }
 
 void updateLED(int index, bool isOn, uint8_t hue) {
   if (index >= NUM_LEDS) return;
-  
   ledActive[index] = isOn;
   
   if (isOn) {

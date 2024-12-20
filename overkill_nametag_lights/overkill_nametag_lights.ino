@@ -1,8 +1,9 @@
 #include <Arduino.h>
-#include "buttons.h"
+#include "button_manager.h"
 #include "led_control.h"
 #include "shift_register.h"
 #include "state_manager.h"
+#include "output_manager.h"
 
 /*
 Future Networking Implementation Notes:
@@ -31,62 +32,52 @@ Example network message structure:
 }
 */
 
+ButtonManager buttonManager;
 StateManager stateManager;
-bool prevButtonStates[NUM_BUTTONS] = {false};
-bool prevLongPress[NUM_BUTTONS] = {false};
+
+OutputManager outputManager;
 
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting up...");
     
-    setupButtons();
-    setupLEDs();
-    setupShiftRegister();
+    buttonManager.begin();
+    outputManager.begin(stateManager);
+    
+    // Subscribe StateManager to button events
+    EventBus::subscribe([](const ButtonEventData& event) {
+        switch(event.type) {
+            case ButtonEvent::CLICKED:
+                if (!stateManager.isInAnimationMode()) {
+                    stateManager.toggleOutput(event.buttonIndex);
+                } else {
+                    stateManager.setAnimationPattern(event.buttonIndex);
+                }
+                break;
+                
+            case ButtonEvent::DOUBLE_CLICKED:
+                stateManager.toggleAnimationMode();
+                break;
+                
+            case ButtonEvent::LONG_PRESSED:
+                if (!stateManager.isInAnimationMode()) {
+                    stateManager.setColorCycling(event.buttonIndex, true);
+                }
+                break;
+                
+            case ButtonEvent::LONG_PRESS_RELEASED:
+                if (!stateManager.isInAnimationMode()) {
+                    stateManager.setColorCycling(event.buttonIndex, false);
+                }
+                break;
+        }
+    });
     
     delay(2000);  // Initial delay for programming
 }
 
 void loop() {
-    // Handle button inputs
-    updateButtons();
-    
-    // Check for animation mode toggle
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        bool currentPress = isButtonPressed(i);
-        bool currentLongPress = isLongPress(i);
-        bool currentDoublePress = isDoublePress(i);
-        
-        if (currentDoublePress) {
-            if (!stateManager.isInAnimationMode()) {
-                // Enter animation mode
-                stateManager.toggleAnimationMode();
-            } else {
-                // Exit animation mode
-                stateManager.toggleAnimationMode();
-            }
-        } else if (stateManager.isInAnimationMode() && currentPress && !prevButtonStates[i]) {
-            // In animation mode, single press changes pattern
-            stateManager.setAnimationPattern(i);
-        } else if (!stateManager.isInAnimationMode()) {
-            // Normal mode behavior
-            if (!currentPress && prevButtonStates[i]) {
-                if (!prevLongPress[i]) {
-                    stateManager.toggleOutput(i);
-                }
-            }
-            
-            if (currentLongPress && !prevLongPress[i]) {
-                stateManager.setColorCycling(i, true);
-            } else if (!currentPress && prevButtonStates[i] && prevLongPress[i]) {
-                stateManager.setColorCycling(i, false);
-            }
-            
-            stateManager.updateHue(i);
-        }
-        
-        prevButtonStates[i] = currentPress;
-        prevLongPress[i] = currentLongPress;
-    }
+    buttonManager.update();
     
     // Update animations if in animation mode
     if (stateManager.isInAnimationMode()) {
@@ -94,22 +85,7 @@ void loop() {
     }
     
     // Update physical outputs
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        const OutputState& state = stateManager.getState(i);
-        if (stateManager.isInAnimationMode()) {
-            // WS2811 LEDs show the animation
-            updateLED(i, state.isOn, state.hue);
-            // Shift register LEDs show which animation is active
-            updateShiftRegister(i + 1, (i == stateManager.getAnimationPattern()));
-        } else {
-            // Normal mode - both LED types show button state
-            updateLED(i, state.isOn, state.hue);
-            updateShiftRegister(i + 1, state.isOn);
-        }
-    }
+    outputManager.update();
     
-    showLEDs();
-    updateAllShiftRegisters();
-    
-    delay(20);  // Slightly faster update rate for smoother animations
+    delay(20);
 }
