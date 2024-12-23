@@ -5,6 +5,13 @@
 #include "state_manager.h"
 #include "output_manager.h"
 
+#define DEBUG_MODE
+#ifdef DEBUG_MODE
+    #define DEBUG_PRINT(x) Serial.println(x)
+#else
+    #define DEBUG_PRINT(x)
+#endif
+
 /*
 Future Networking Implementation Notes:
 1. Add NetworkManager class to handle WiFi/ESP-NOW
@@ -50,6 +57,7 @@ void setup() {
             case ButtonEvent::CLICKED:
                 if (!stateManager.isInAnimationMode()) {
                     stateManager.toggleOutput(event.buttonIndex);
+                    DEBUG_PRINT("Toggling output");
                 } else {
                     stateManager.setAnimationPattern(event.buttonIndex);
                 }
