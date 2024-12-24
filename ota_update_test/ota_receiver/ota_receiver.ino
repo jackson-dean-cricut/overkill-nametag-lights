@@ -74,6 +74,13 @@ void nodeTimeAdjustedCallback(int32_t offset) {
   Serial.printf("Time adjusted by %d ms\n", offset);
 }
 
+// OTA Progress callback
+void otaProgress(int current, int total) {
+  float progress = (current * 100.0) / total;
+  Serial.printf("OTA Progress: %d%%\n", (int)progress);
+  taskBlink.enable();  // Ensure LED is blinking during update
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(LED, OUTPUT);
@@ -91,8 +98,8 @@ void setup() {
   mesh.onChangedConnections(&changedConnectionCallback);
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
   
-  // Initialize OTA - this device will accept updates targeted at "debug_receiver" role
-  mesh.initOTAReceive("debug_receiver");
+  // Initialize OTA with progress callback
+  mesh.initOTAReceive("debug_receiver", &otaProgress);
 
   // Add tasks to scheduler
   userScheduler.addTask(taskSendStatus);

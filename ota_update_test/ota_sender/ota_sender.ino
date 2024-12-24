@@ -6,7 +6,7 @@
 #define MESH_PASSWORD "somethingSneaky" 
 #define MESH_PORT 5555
 
-#define FIRMWARE_CHUNK_SIZE 1024  // Size of OTA chunks to send
+#define FIRMWARE_CHUNK_SIZE 1024
 #define FIRMWARE_FILENAME "/firmware.bin"
 
 painlessMesh mesh;
@@ -15,9 +15,9 @@ ESP8266WebServer server(80);
 size_t firmwareSize = 0;
 String targetRole = "";
 bool firmwareReady = false;
-MD5Builder md5;
+File* currentFile = nullptr;  // Keep track of open file
 
-// HTML for the upload form
+// HTML form (same as before)
 const char* uploadForm = R"(
 <!DOCTYPE html>
 <html>
@@ -36,9 +36,6 @@ const char* uploadForm = R"(
             border: none; 
             cursor: pointer; 
         }
-        .status { margin-top: 20px; padding: 10px; border-radius: 4px; }
-        .error { background: #ffebee; color: #c62828; }
-        .success { background: #e8f5e9; color: #2e7d32; }
     </style>
 </head>
 <body>
@@ -58,11 +55,9 @@ const char* uploadForm = R"(
         <script>
             document.getElementById('uploadForm').onsubmit = function(e) {
                 var role = document.getElementById('role').value;
-                // Add the role as a URL parameter
                 this.action = '/upload?role=' + encodeURIComponent(role);
             };
         </script>
-        <div id="status"></div>
     </div>
 </body>
 </html>
@@ -72,116 +67,147 @@ void handleRoot() {
     server.send(200, "text/html", uploadForm);
 }
 
+// Function to safely close file if open
+void safeCloseFile() {
+    if (currentFile != nullptr && currentFile->size() > 0) {
+        currentFile->close();
+        delete currentFile;
+        currentFile = nullptr;
+    }
+}
+
 void handleUpload() {
     HTTPUpload& upload = server.upload();
     static File fsUploadFile;
+    static MD5Builder md5;
     
     if(upload.status == UPLOAD_FILE_START) {
         firmwareSize = 0;
         firmwareReady = false;
+        safeCloseFile();  // Ensure any previous file is closed
         
-        // Delete existing firmware file if it exists
+        // Get target role
+        targetRole = server.arg("role");
+        Serial.printf("Starting firmware upload for role: %s\n", targetRole.c_str());
+        
         if(SPIFFS.exists(FIRMWARE_FILENAME)) {
             SPIFFS.remove(FIRMWARE_FILENAME);
         }
         
-        // Open file for writing
         fsUploadFile = SPIFFS.open(FIRMWARE_FILENAME, "w");
         if(!fsUploadFile) {
             Serial.println("Failed to open file for writing");
             return;
         }
         
-        // Initialize MD5 builder
         md5.begin();
-        
-        // Get target role from form data
-        if (upload.name == "firmware") {
-            // Extract role from the filename field that's sent before the file
-            String filename = upload.filename;
-            targetRole = server.arg("role");
-            Serial.printf("Starting firmware upload for role: %s\n", targetRole.c_str());
-        }
     } 
-    else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(fsUploadFile) {
-            // Write chunk to file and update MD5
-            fsUploadFile.write(upload.buf, upload.currentSize);
-            md5.add(upload.buf, upload.currentSize);
-            firmwareSize += upload.currentSize;
-            Serial.printf("Uploading: %u\n", firmwareSize);
+    else if(upload.status == UPLOAD_FILE_WRITE && fsUploadFile) {
+        // Keep mesh alive during upload
+        static unsigned long lastMeshUpdate = 0;
+        if (millis() - lastMeshUpdate > 100) {  // Update mesh every 100ms
+            mesh.update();
+            lastMeshUpdate = millis();
         }
+        
+        fsUploadFile.write(upload.buf, upload.currentSize);
+        md5.add(upload.buf, upload.currentSize);
+        firmwareSize += upload.currentSize;
+        Serial.printf("Written %u bytes (Total: %u bytes)\n", upload.currentSize, firmwareSize);
     } 
     else if(upload.status == UPLOAD_FILE_END) {
         if(fsUploadFile) {
             fsUploadFile.close();
+            
+            // Keep mesh alive and prevent watchdog reset
+            mesh.update();
+            yield();
+            
             md5.calculate();
             firmwareReady = true;
             
-            Serial.printf("Upload Success: %u bytes\n", upload.totalSize);
+            Serial.printf("Upload Success: %u bytes\n", firmwareSize);
+            Serial.printf("MD5: %s\n", md5.toString().c_str());
             
-            // Initialize OTA sending
+            // Initialize OTA sending with safe file handling
             mesh.initOTASend(
                 [](painlessmesh::plugin::ota::DataRequest pkg, char* buffer) -> size_t {
-                    File f = SPIFFS.open(FIRMWARE_FILENAME, "r");
-                    if (!f) return 0;
+                    static File f;
+                    size_t read = 0;
+                    
+                    // Open file for each request
+                    f = SPIFFS.open(FIRMWARE_FILENAME, "r");
+                    if (!f) {
+                        Serial.println("Failed to open firmware file!");
+                        return 0;
+                    }
                     
                     if (pkg.partNo * FIRMWARE_CHUNK_SIZE < firmwareSize) {
-                        // Seek to the requested chunk
                         f.seek(pkg.partNo * FIRMWARE_CHUNK_SIZE);
-                        
-                        // Calculate chunk size
-                        size_t length = min(
+                        read = f.read((uint8_t*)buffer, min(
                             static_cast<size_t>(FIRMWARE_CHUNK_SIZE),
                             firmwareSize - (pkg.partNo * FIRMWARE_CHUNK_SIZE)
-                        );
-                        
-                        // Read chunk into buffer
-                        size_t read = f.read((uint8_t*)buffer, length);
-                        f.close();
-                        return read;
+                        ));
+                        int totalChunks = ceil(((float)firmwareSize) / FIRMWARE_CHUNK_SIZE);
+                        Serial.printf("Sending chunk %d/%d (%d bytes)\n", pkg.partNo + 1, totalChunks, read);
                     }
                     
                     f.close();
-                    return 0;
+                    return read;
                 },
                 FIRMWARE_CHUNK_SIZE
             );
             
-            // Debug print the role and other info
-            Serial.println("Preparing OTA offer with:");
-            Serial.printf("Role: %s\n", targetRole.c_str());
+            // Small delay before offering OTA
+            delay(100);
+            
+            // Prepare for OTA update
+            Serial.println("\n--- OTA Update Preparation ---");
+            Serial.printf("Connected nodes: %d\n", mesh.getNodeList().size());
+            Serial.printf("Final firmware size: %u bytes\n", firmwareSize);
+            Serial.printf("Number of chunks: %d\n", (int)ceil(((float)firmwareSize) / FIRMWARE_CHUNK_SIZE));
+            Serial.printf("Target role: %s\n", targetRole.c_str());
             Serial.printf("MD5: %s\n", md5.toString().c_str());
-            Serial.printf("Firmware size: %u bytes\n", firmwareSize);
             
-            // Offer OTA update to mesh
-            mesh.offerOTA(
-                targetRole,
-                "ESP8266",
-                md5.toString(),
-                ceil(((float)firmwareSize) / FIRMWARE_CHUNK_SIZE),
-                false
-            );
+            // Keep mesh alive
+            mesh.update();
+            yield();
             
-            Serial.printf("OTA update offered to role: %s\n", targetRole.c_str());
+            // Offer OTA update
+            Serial.println("\nOffering OTA update to mesh...");
+            if (mesh.getNodeList().size() > 0) {
+                auto task = mesh.offerOTA(
+                    targetRole,
+                    "ESP8266",
+                    md5.toString(),
+                    ceil(((float)firmwareSize) / FIRMWARE_CHUNK_SIZE),
+                    false
+                );
+                Serial.printf("OTA offer task created: %s\n", task ? "Success" : "Failed");
+            } else {
+                Serial.println("No nodes in mesh! Cannot offer OTA.");
+            }
         }
         server.sendHeader("Location", "/");
         server.send(303);
     }
 }
 
+void newConnectionCallback(uint32_t nodeId) {
+    Serial.printf("New Connection: nodeId = %u\n", nodeId);
+    Serial.printf("Num nodes: %d\n", mesh.getNodeList().size());
+}
+
+void changedConnectionCallback() {
+    Serial.println("Changed connections");
+    Serial.printf("Num nodes: %d\n", mesh.getNodeList().size());
+}
+
 void setup() {
     Serial.begin(115200);
     
-    // Initialize SPIFFS
     if(!SPIFFS.begin()) {
         Serial.println("Failed to mount SPIFFS");
-        return;
-    }
-    
-    // Format SPIFFS if mounting failed
-    if(!SPIFFS.begin()) {
-        Serial.println("SPIFFS formatting...");
         SPIFFS.format();
         if(!SPIFFS.begin()) {
             Serial.println("SPIFFS mount failed after formatting");
@@ -189,31 +215,39 @@ void setup() {
         }
     }
     
-    // Initialize mesh network
-    mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION);
+    // Initialize mesh with full debug output
+    mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | DEBUG | MESH_STATUS);
     mesh.init(MESH_PREFIX, MESH_PASSWORD, MESH_PORT);
+    mesh.onNewConnection(&newConnectionCallback);
+    mesh.onChangedConnections(&changedConnectionCallback);
     mesh.setRoot(true);
     mesh.setContainsRoot(true);
     
-    // Setup web server
     server.on("/", HTTP_GET, handleRoot);
     server.on("/upload", HTTP_POST, []() {
         server.send(200);
     }, handleUpload);
     
     server.begin();
+    
+    Serial.printf("Sender Node ID: %u\n", mesh.getNodeId());
     Serial.println("Web server started");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 }
 
-int last_print = 0;
 void loop() {
     mesh.update();
     server.handleClient();
-    int time_now = millis();
-    if (time_now - last_print > 5000) {
-      last_print = time_now;
-      Serial.println(WiFi.localIP());
+    
+    // Print status periodically
+    static unsigned long lastStatus = 0;
+    if (millis() - lastStatus > 5000) {  // Every 5 seconds
+        Serial.printf("Connected nodes: %d\n", mesh.getNodeList().size());
+        Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+        if (firmwareSize > 0) {
+            Serial.printf("Current firmware size: %u bytes\n", firmwareSize);
+        }
+        lastStatus = millis();
     }
 }
