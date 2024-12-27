@@ -26,7 +26,7 @@ struct OutputState {
 
 struct AnimationState {
     uint8_t baseHue = 0;        // Base hue for animations
-    uint8_t speed = 5;          // Animation speed
+    uint8_t speed = 2;          // Animation speed
     uint8_t pattern = 0;        // Current animation pattern
     bool isAnimating = false;   // Global animation mode flag
 };
