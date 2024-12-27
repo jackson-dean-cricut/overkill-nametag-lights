@@ -3,6 +3,8 @@
 
 #include "events.h"
 #include "state_manager.h"
+#include "led_control.h"
+#include "shift_register.h"
 
 class OutputManager {
 public:
@@ -11,6 +13,8 @@ public:
 
 private:
     StateManager* stateManager;
+    LEDController ledController;
+    ShiftRegisterController shiftRegister;
 };
 
 #endif
