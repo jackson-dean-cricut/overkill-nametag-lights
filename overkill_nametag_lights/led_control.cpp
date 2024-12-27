@@ -6,6 +6,8 @@ LEDController::LEDController() {
 }
 
 void LEDController::begin() {
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);  // Adjust milliamps based on your power supply
+
     FastLED.addLeds<WS2811, LED_PIN, GRB>(leds, NUM_LEDS);
     FastLED.setBrightness(BRIGHTNESS);
     delay(1); // allow system to stabilize
