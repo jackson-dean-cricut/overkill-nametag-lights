@@ -3,15 +3,20 @@
 
 #include <Shifty.h>
 
-// Shift register configuration
-#define SHIFT_DATA_PIN  16
-#define SHIFT_CLOCK_PIN 15
-#define NUM_OUTPUTS     8
+class ShiftRegisterController {
+public:
+    static const int NUM_OUTPUTS = 8;
+    static const int SHIFT_DATA_PIN = 16;
+    static const int SHIFT_CLOCK_PIN = 15;
 
-extern Shifty shiftRegister;
+    ShiftRegisterController();
+    void begin();
+    void updateRegister(int index, bool state);
+    void updateAll();
 
-void setupShiftRegister();
-void updateShiftRegister(int index, bool state);
-void updateAllShiftRegisters();
+private:
+    Shifty shiftRegister;
+    bool shiftStates[NUM_OUTPUTS];
+};
 
 #endif

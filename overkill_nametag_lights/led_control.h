@@ -3,19 +3,21 @@
 
 #include <FastLED.h>
 
-// LED strip configuration
-#define LED_PIN     2
-#define NUM_LEDS    6
-#define LED_TYPE    WS2811
-#define COLOR_ORDER GRB
-#define BRIGHTNESS  128
+class LEDController {
+public:
+    static const int NUM_LEDS = 6;
+    static const int LED_PIN = 2;
+    static const int BRIGHTNESS = 128;
 
-extern CRGB leds[NUM_LEDS];
-extern uint8_t ledHues[NUM_LEDS];
-extern bool ledActive[NUM_LEDS];
+    LEDController();
+    void begin();
+    void updateLED(int index, bool isOn, uint8_t hue);
+    void show();
 
-void setupLEDs();
-void updateLED(int index, bool isOn, uint8_t hue);
-void showLEDs();
+private:
+    CRGB leds[NUM_LEDS];
+    uint8_t ledHues[NUM_LEDS];
+    bool ledActive[NUM_LEDS];
+};
 
 #endif

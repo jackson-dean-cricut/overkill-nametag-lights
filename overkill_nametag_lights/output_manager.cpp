@@ -1,12 +1,10 @@
 #include "output_manager.h"
-#include "led_control.h"
-#include "shift_register.h"
 #include "button_manager.h"
 
 void OutputManager::begin(StateManager& sm) {
     stateManager = &sm;
-    setupLEDs();
-    setupShiftRegister();
+    ledController.begin();
+    shiftRegister.begin();
 }
 
 void OutputManager::update() {
@@ -15,16 +13,16 @@ void OutputManager::update() {
         const OutputState& state = stateManager->getState(i);
         if (stateManager->isInAnimationMode()) {
             // WS2811 LEDs show the animation
-            updateLED(i, state.isOn, state.hue);
+            ledController.updateLED(i, state.isOn, state.hue);
             // Shift register LEDs show which animation is active
-            updateShiftRegister(i + 1, (i == stateManager->getAnimationPattern()));
+            shiftRegister.updateRegister(i + 1, (i == stateManager->getAnimationPattern()));
         } else {
             // Normal mode - both LED types show button state
-            updateLED(i, state.isOn, state.hue);
-            updateShiftRegister(i + 1, state.isOn);
+            ledController.updateLED(i, state.isOn, state.hue);
+            shiftRegister.updateRegister(i + 1, state.isOn);
         }
     }
     
-    showLEDs();
-    updateAllShiftRegisters();
+    ledController.show();
+    shiftRegister.updateAll();
 }
