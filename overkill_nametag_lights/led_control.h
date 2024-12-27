@@ -11,12 +11,13 @@ public:
 
     LEDController();
     void begin();
-    void updateLED(int index, bool isOn, uint8_t hue);
+    void updateLED(int index, bool isOn, uint8_t hue, uint8_t brightness);
     void show();
 
 private:
     CRGB leds[NUM_LEDS];
     uint8_t ledHues[NUM_LEDS];
+    uint8_t ledBrightness[NUM_LEDS];
     bool ledActive[NUM_LEDS];
 };
 

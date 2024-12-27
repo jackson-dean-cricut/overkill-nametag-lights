@@ -3,7 +3,7 @@
 
 StateManager::StateManager() {
     for (int i = 0; i < MAX_OUTPUTS; i++) {
-        outputs[i] = {false, 0, false};
+        outputs[i] = {false, 0, 255, false, 0};  // Default to full brightness
     }
 }
 
@@ -55,7 +55,7 @@ bool StateManager::isActive(int index) const {
 
 void StateManager::resetOutput(int index) {
     if (index >= MAX_OUTPUTS) return;
-    outputs[index] = {false, 0, false};  // Reset to default state
+    outputs[index] = {false, 0, 255, false, 0};  // Reset to default state
     // For future networking: stateChanged = true;
 }
 
@@ -66,7 +66,9 @@ void StateManager::toggleAnimationMode() {
         for (int i = 0; i < MAX_OUTPUTS; i++) {
             outputs[i].isOn = true;
             outputs[i].isColorCycling = false;
-            outputs[i].animationOffset = i * (255 / MAX_OUTPUTS);
+            outputs[i].brightness = 255;
+            // Space the LEDs evenly around the color wheel
+            outputs[i].animationOffset = (i * 256) / MAX_OUTPUTS;
         }
         animState.pattern = 0;  // Start with rainbow pattern
     } else {

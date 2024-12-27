@@ -18,6 +18,7 @@ Future Networking Implementation Notes:
 struct OutputState {
     bool isOn;
     uint8_t hue;
+    uint8_t brightness;
     bool isColorCycling;
     uint8_t animationOffset;    // Offset from base hue for animations
     // For future networking: unsigned long lastUpdateTime;
