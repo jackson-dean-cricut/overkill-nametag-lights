@@ -1,0 +1,17 @@
+# Syntax Coloring Map for NametagShared
+
+# Datatypes (KEYWORD1)
+MessageType	KEYWORD1
+ClientState	KEYWORD1
+ClientEvent	KEYWORD1
+Command	KEYWORD1
+
+# Methods and Functions (KEYWORD2)
+toJson	KEYWORD2
+fromJson	KEYWORD2
+
+# Constants (LITERAL1)
+STATE_UPDATE	LITERAL1
+COMMAND	LITERAL1
+CLIENT_EVENT	LITERAL1
+DISCOVERY	LITERAL1
