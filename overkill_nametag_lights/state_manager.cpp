@@ -134,14 +134,58 @@ void StateManager::updateWave() {
 }
 
 void StateManager::updatePulse() {
-    animState.baseHue += animState.speed;
-    for (int i = 0; i < MAX_OUTPUTS; i++) {
-        outputs[i].isOn = true;
-        // Create expanding/contracting pulse effect
-        uint8_t phase = animState.baseHue + outputs[i].animationOffset;
-        outputs[i].brightness = sin8(phase);
-        // Slowly cycle through colors
-        outputs[i].hue = (animState.baseHue / 2) + outputs[i].animationOffset;
+    static uint8_t step = 0;
+    static bool isRising = true;
+    static uint8_t currentHue = 0;
+    const uint8_t min_brightness = 15;
+    
+    step += animState.speed;
+    
+    // Change state every 64 steps (slower animation)
+    if (step >= 1) {
+        step = 0;
+        
+        // If we're at either extreme, change direction and update color
+        if (isRising && outputs[MAX_OUTPUTS-1].brightness >= 255) {
+            isRising = false;
+        } else if (!isRising && outputs[0].brightness == min_brightness) {
+            isRising = true;
+            currentHue += 32;  // Change color for next cycle
+        }
+
+        for (int i = 0; i < MAX_OUTPUTS; i++) {
+            outputs[i].hue = currentHue;
+        }
+
+        int spacing = 100;  // Brightness difference between adjacent LEDs
+        int offset = 4; // Brightness difference each cycle
+
+        // Helper function for gamma correction
+        auto gamma8 = [](uint8_t brightness) {
+            return (uint8_t)(((uint16_t)brightness * brightness) >> 8);
+        };
+
+        if (isRising) {
+            outputs[0].brightness = constrain((int)outputs[0].brightness + offset, min_brightness, 255);
+
+            for (int i = 1; i < MAX_OUTPUTS; i++) {
+                if (outputs[i-1].brightness > spacing) {
+                    outputs[i].brightness = constrain((int)outputs[i].brightness + offset, min_brightness, 255);
+                }
+            }
+        }
+        else {
+            outputs[MAX_OUTPUTS-1].brightness = constrain((int)outputs[MAX_OUTPUTS-1].brightness - offset, min_brightness, 255);
+
+            for (int i = MAX_OUTPUTS-2; i >= 0; i--) {
+                if (outputs[i+1].brightness < 255 - spacing) {
+                    outputs[i].brightness = constrain((int)outputs[i].brightness - offset, min_brightness, 255);
+                }
+            }
+        }
+
+        Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
+
     }
 }
 
