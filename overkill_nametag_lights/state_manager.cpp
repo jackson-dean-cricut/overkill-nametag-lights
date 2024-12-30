@@ -134,11 +134,12 @@ void StateManager::updateWave() {
 }
 
 void StateManager::updatePulse() {
-   static float peakPosition = 0;
-   static bool isRising = true;
-   static uint8_t currentHue = 0;
-   
-   const uint8_t MIN_BRIGHTNESS = 20;
+    static float peakPosition = 0;
+    static bool isRising = true;
+    static uint8_t currentHue = 0;
+    
+    const uint8_t MIN_BRIGHTNESS = 20;
+    int HUE_STEP = 1;  // How quickly to transition hue (higher = faster)
 
     // Update peak position
     float moveSpeed = 0.05f;
@@ -151,13 +152,25 @@ void StateManager::updatePulse() {
         peakPosition -= moveSpeed;
         if (peakPosition <= -3) {
             isRising = true;
-            currentHue += 32;
+            currentHue += 20;
         }
     }
 
-    // Update hues
+    // Update hues with smooth transition
     for (int i = 0; i < MAX_OUTPUTS; i++) {
-        outputs[i].hue = currentHue;
+        if (outputs[i].hue != currentHue) {
+            // Find shortest path to target hue (clockwise or counterclockwise)
+            int diff = currentHue - outputs[i].hue;
+            if (diff > 127) diff -= 256;
+            else if (diff < -128) diff += 256;
+            
+            // Move hue closer to target by HUE_STEP
+            if (diff > 0) {
+                outputs[i].hue = outputs[i].hue + min(HUE_STEP, diff);
+            } else if (diff < 0) {
+                outputs[i].hue = outputs[i].hue - min(HUE_STEP, -diff);
+            }
+        }
     }
 
     // Update brightnesses based on distance from peak
