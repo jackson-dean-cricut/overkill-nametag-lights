@@ -134,59 +134,45 @@ void StateManager::updateWave() {
 }
 
 void StateManager::updatePulse() {
-    static uint8_t step = 0;
-    static bool isRising = true;
-    static uint8_t currentHue = 0;
-    const uint8_t min_brightness = 15;
-    
-    step += animState.speed;
-    
-    // Change state every 64 steps (slower animation)
-    if (step >= 1) {
-        step = 0;
-        
-        // If we're at either extreme, change direction and update color
-        if (isRising && outputs[MAX_OUTPUTS-1].brightness >= 255) {
+   static float peakPosition = 0;
+   static bool isRising = true;
+   static uint8_t currentHue = 0;
+   
+   const uint8_t MIN_BRIGHTNESS = 20;
+
+    // Update peak position
+    float moveSpeed = 0.05f;
+    if (isRising) {
+        peakPosition += moveSpeed;
+        if (peakPosition >= MAX_OUTPUTS - 1) {
             isRising = false;
-        } else if (!isRising && outputs[0].brightness == min_brightness) {
+        }
+    } else {
+        peakPosition -= moveSpeed;
+        if (peakPosition <= -3) {
             isRising = true;
-            currentHue += 32;  // Change color for next cycle
+            currentHue += 32;
         }
-
-        for (int i = 0; i < MAX_OUTPUTS; i++) {
-            outputs[i].hue = currentHue;
-        }
-
-        int spacing = 100;  // Brightness difference between adjacent LEDs
-        int offset = 4; // Brightness difference each cycle
-
-        // Helper function for gamma correction
-        auto gamma8 = [](uint8_t brightness) {
-            return (uint8_t)(((uint16_t)brightness * brightness) >> 8);
-        };
-
-        if (isRising) {
-            outputs[0].brightness = constrain((int)outputs[0].brightness + offset, min_brightness, 255);
-
-            for (int i = 1; i < MAX_OUTPUTS; i++) {
-                if (outputs[i-1].brightness > spacing) {
-                    outputs[i].brightness = constrain((int)outputs[i].brightness + offset, min_brightness, 255);
-                }
-            }
-        }
-        else {
-            outputs[MAX_OUTPUTS-1].brightness = constrain((int)outputs[MAX_OUTPUTS-1].brightness - offset, min_brightness, 255);
-
-            for (int i = MAX_OUTPUTS-2; i >= 0; i--) {
-                if (outputs[i+1].brightness < 255 - spacing) {
-                    outputs[i].brightness = constrain((int)outputs[i].brightness - offset, min_brightness, 255);
-                }
-            }
-        }
-
-        Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
-
     }
+
+    // Update hues
+    for (int i = 0; i < MAX_OUTPUTS; i++) {
+        outputs[i].hue = currentHue;
+    }
+
+    // Update brightnesses based on distance from peak
+    for (int i = 0; i < MAX_OUTPUTS; i++) {
+        if (i <= peakPosition) {
+            outputs[i].brightness = 255;
+        } else {
+            float distance = i - peakPosition;
+            float falloff = max(0.0f, 1.0f - (distance / 3.0f));
+            uint8_t brightness = (uint8_t)(falloff * falloff * 255); // Square the falloff for gamma correction
+            outputs[i].brightness = constrain(brightness, MIN_BRIGHTNESS, 255);
+        }
+    }
+
+    Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
 }
 
 void StateManager::updateSparkle() {
