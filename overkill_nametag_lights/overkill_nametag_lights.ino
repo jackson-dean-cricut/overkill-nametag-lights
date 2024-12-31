@@ -143,6 +143,4 @@ void loop() {
     buttonManager.update();
     stateManager.update();
     outputManager.update();
-    
-    delay(20);
-}
+    }
