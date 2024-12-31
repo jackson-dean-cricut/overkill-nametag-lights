@@ -122,15 +122,51 @@ void StateManager::updateRainbow() {
 }
 
 void StateManager::updateWave() {
-    animState.baseHue += animState.speed;
-    for (int i = 0; i < MAX_OUTPUTS; i++) {
-        outputs[i].isOn = true;
-        // Create a moving wave pattern using LEDUtils::sin8
-        uint8_t wave = LEDUtils::sin8(animState.baseHue + outputs[i].animationOffset);
-        outputs[i].brightness = wave;  // Use wave for brightness
-        // Keep consistent colors per LED but shift them slowly
-        outputs[i].hue = (outputs[i].animationOffset + (animState.baseHue / 4));
+    static float wavePosition = 0;
+    static float lastWavePosition = 0;
+    static uint8_t targetHues[MAX_OUTPUTS];
+    static bool huesInitialized = false;
+    
+    const float WAVE_SPEED = 0.015f;    // Speed of wave movement
+    const float WAVE_WIDTH = 2.0f * PI / MAX_OUTPUTS;    // How spread out the wave is
+    const int16_t HUE_STEP = 1;       // How quickly hues shift
+    
+    // Initialize random target hues if first run
+    if (!huesInitialized) {
+        for (int i = 0; i < MAX_OUTPUTS; i++) {
+            outputs[i].hue = random(256);
+            targetHues[i] = outputs[i].hue;
+        }
+        huesInitialized = true;
+        lastWavePosition = wavePosition;
     }
+    
+    // Update wave position
+    wavePosition = fmod(wavePosition + WAVE_SPEED * animState.speed, MAX_OUTPUTS);
+    
+    // Check if wave has passed any LEDs
+    for (int i = 0; i < MAX_OUTPUTS; i++) {
+        if ((lastWavePosition < i && wavePosition >= i) || 
+            (lastWavePosition > wavePosition && (lastWavePosition < i || wavePosition >= i))) {
+            outputs[i].hue = random(256); // new color as wave passes
+        }
+        
+        outputs[i].isOn = true;
+        
+        // Calculate wave brightness using distance from wave peak
+        float distance = abs((float)i - wavePosition);
+        if (distance > MAX_OUTPUTS/2) {
+            distance = MAX_OUTPUTS - distance;
+        }
+        Serial.printf("%.2f ", distance);
+        float brightness = cos(distance * WAVE_WIDTH);
+        brightness = 1.0f - ((brightness + 1.0f) * 0.5f);  //  normalized wave
+        outputs[i].brightness = (uint8_t)(brightness * 255);
+        
+    }
+    Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
+
+    lastWavePosition = wavePosition;
 }
 
 void StateManager::updatePulse() {
