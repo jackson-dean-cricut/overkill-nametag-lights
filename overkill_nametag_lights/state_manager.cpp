@@ -112,12 +112,15 @@ void StateManager::updateAnimations() {
 
 // Animation pattern implementations
 void StateManager::updateRainbow() {
-    animState.baseHue += animState.speed;
+    static float offset = 0;
+    const float RAINBOW_SPEED = 0.2f;
+    
+    offset = fmod(offset + RAINBOW_SPEED * animState.speed, 256);
+    
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
         outputs[i].brightness = 255;
-        // Each LED gets base hue plus its offset
-        outputs[i].hue = animState.baseHue + outputs[i].animationOffset;
+        outputs[i].hue = (uint8_t)(offset + (i * 256.0f / MAX_OUTPUTS));
     }
 }
 
