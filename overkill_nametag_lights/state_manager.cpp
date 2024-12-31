@@ -28,6 +28,16 @@ void StateManager::updateHue(int index) {
 }
 
 void StateManager::update() {
+    static unsigned long lastUpdate = 0;
+    const unsigned long UPDATE_INTERVAL = 20;  // Same as original delay
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - lastUpdate < UPDATE_INTERVAL) {
+        return;  // Not time to update yet
+    }
+
+    lastUpdate = currentMillis;
+
     // Handle animation mode updates
     if (animState.isAnimating) {
         updateAnimations();
@@ -167,7 +177,7 @@ void StateManager::updateWave() {
         outputs[i].brightness = (uint8_t)(brightness * 255);
         
     }
-    Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
+    // Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
 
     lastWavePosition = wavePosition;
 }
