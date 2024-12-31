@@ -43,6 +43,7 @@ void LEDController::updateLED(int index, bool isOn, uint8_t hue, uint8_t brightn
     
     if (isOn) {
         RgbColor color = hsvToRgb(hue, 255, brightness);
+        color = LEDUtils::applyGamma(color);
         strip.SetPixelColor(index, color);
     } else {
         strip.SetPixelColor(index, RgbColor(0));

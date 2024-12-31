@@ -3,6 +3,10 @@
 
 #include <NeoPixelBus.h>
 
+// If defined, use the table-based gamma correction, using more memory but is faster
+// If not defined, use the equation based correction. Slower but smaller.
+#define USE_GAMMA_TABLE 
+
 // Utility class to replace FastLED math functions
 class LEDUtils {
 public:
@@ -24,6 +28,15 @@ public:
     
     static uint8_t scale8(uint8_t i, uint8_t scale) {
         return ((uint16_t)i * (uint16_t)scale) >> 8;
+    }
+
+    static RgbColor applyGamma(RgbColor color) {
+#ifdef USE_GAMMA_TABLE
+        static NeoGamma<NeoGammaTableMethod> colorGamma;
+#else
+        static NeoGamma<NeoGammaEquationMethod> colorGamma;
+#endif
+        return colorGamma.Correct(color);
     }
 
 private:
