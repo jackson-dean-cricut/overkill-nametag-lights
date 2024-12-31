@@ -1,5 +1,5 @@
 #include "state_manager.h"
-#include <FastLED.h>
+#include "led_control.h"
 
 StateManager::StateManager() {
     for (int i = 0; i < MAX_OUTPUTS; i++) {
@@ -125,8 +125,8 @@ void StateManager::updateWave() {
     animState.baseHue += animState.speed;
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
-        // Create a moving wave pattern using sin8
-        uint8_t wave = sin8(animState.baseHue + outputs[i].animationOffset);
+        // Create a moving wave pattern using LEDUtils::sin8
+        uint8_t wave = LEDUtils::sin8(animState.baseHue + outputs[i].animationOffset);
         outputs[i].brightness = wave;  // Use wave for brightness
         // Keep consistent colors per LED but shift them slowly
         outputs[i].hue = (outputs[i].animationOffset + (animState.baseHue / 4));
@@ -190,10 +190,10 @@ void StateManager::updatePulse() {
 
 void StateManager::updateSparkle() {
     // Randomly update brightness and hue for random LEDs
-    if (random8() < 32) {  // Random sparkle probability
-        int led = random8(MAX_OUTPUTS);
-        outputs[led].hue = random8();
-        outputs[led].brightness = random8(128, 255);  // Brighter range for better visibility
+    if (LEDUtils::random8() < 32) {  // Random sparkle probability
+        int led = LEDUtils::random8(MAX_OUTPUTS);
+        outputs[led].hue = LEDUtils::random8();
+        outputs[led].brightness = LEDUtils::random8(128, 255);  // Brighter range for better visibility
     }
     
     // Gradually dim all LEDs
@@ -228,14 +228,14 @@ void StateManager::updateChase() {
 
 void StateManager::updateBreathing() {
     animState.baseHue += animState.speed;
-    uint8_t masterBrightness = sin8(animState.baseHue);
+    uint8_t masterBrightness = LEDUtils::sin8(animState.baseHue);
     
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
         // Each LED keeps its own color but breathes in sync
         outputs[i].hue = outputs[i].animationOffset;
         // Use wave pattern offset for each LED to create flowing breath
-        uint8_t offsetBrightness = sin8(masterBrightness + outputs[i].animationOffset/4);
+        uint8_t offsetBrightness = LEDUtils::sin8(masterBrightness + outputs[i].animationOffset/4);
         outputs[i].brightness = offsetBrightness;
     }
 }
