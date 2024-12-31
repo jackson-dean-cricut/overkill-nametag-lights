@@ -206,23 +206,47 @@ void StateManager::updateSparkle() {
 }
 
 void StateManager::updateChase() {
-    animState.baseHue += animState.speed;
-    int active = (animState.baseHue >> 5) % MAX_OUTPUTS;
+    static float peakPosition = 0;
+    static uint8_t currentHue = 0;
     
+    const float MOVE_SPEED = 0.01f;  // Adjust for desired speed
+    const float FALLOFF_DISTANCE = 2.0f;  // How many LEDs to spread the falloff over
+    const uint8_t MIN_BRIGHTNESS = 0;  // Minimum brightness in the falloff
+    const uint8_t HUE_STEP = 1;  // How quickly the hue changes
+    
+    // Update peak position with wrapping
+    peakPosition = fmod(peakPosition + MOVE_SPEED * animState.speed, MAX_OUTPUTS);
+    
+    // Gradually update the hue
+    currentHue += HUE_STEP;
+    
+    // Update all LEDs
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
         
-        // Calculate distance from active LED (considering wrap-around)
-        int distance = abs(i - active);
+        // Calculate shortest distance to peak, considering wrap-around
+        float distance = abs(i - peakPosition);
         if (distance > MAX_OUTPUTS/2) {
             distance = MAX_OUTPUTS - distance;
         }
         
-        // Fade brightness based on distance from active LED
-        outputs[i].brightness = distance == 0 ? 255 : (64 / (distance + 1));
+        // Calculate brightness based on distance from peak
+        float falloff;
+        if (distance <= FALLOFF_DISTANCE) {
+            // Quadratic falloff for smoother transition
+            falloff = 1.0f - (distance / FALLOFF_DISTANCE);
+            falloff = falloff * falloff;
+            
+            // Sharper leading edge when moving forward
+            if (i > peakPosition && i < peakPosition + FALLOFF_DISTANCE) {
+                falloff *= 0.1f;  // Reduce brightness on leading edge
+            }
+        } else {
+            falloff = 0.0f;
+        }
         
-        // Each LED maintains its base color but active one is brightest
-        outputs[i].hue = outputs[i].animationOffset;
+        outputs[i].brightness = constrain((uint8_t)(falloff * 255), MIN_BRIGHTNESS, 255);
+        outputs[i].hue = currentHue;  // All LEDs share the same gradually shifting hue
     }
 }
 
