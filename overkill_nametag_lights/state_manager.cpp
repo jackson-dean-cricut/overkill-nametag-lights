@@ -227,15 +227,60 @@ void StateManager::updateChase() {
 }
 
 void StateManager::updateBreathing() {
-    animState.baseHue += animState.speed;
-    uint8_t masterBrightness = LEDUtils::sin8(animState.baseHue);
+    static float breathPosition = 0;
+    static uint8_t targetHues[MAX_OUTPUTS];
+    static bool huesInitialized = false;
+    
+    const float BREATH_SPEED = 0.02f;  // Adjust for desired breath rate
+    const int HUE_STEP = 1;        // How quickly hues shift
+    const uint8_t HUE_VARIATION = 30;   // Max random hue shift when picking new target
+    
+    // Initialize random target hues if first run
+    if (!huesInitialized) {
+        for (int i = 0; i < MAX_OUTPUTS; i++) {
+            outputs[i].hue = random(256);
+            targetHues[i] = outputs[i].hue;
+        }
+        huesInitialized = true;
+    }
+    
+    // Update breath position (0 to 2π)
+    breathPosition = fmod(breathPosition + BREATH_SPEED * animState.speed, 2 * PI);
+    
+    // Calculate master brightness using sine wave
+    float masterBrightness = (sin(breathPosition) + 1.0f) * 0.5f;  // Normalized to 0.0 - 1.0
     
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
-        // Each LED keeps its own color but breathes in sync
-        outputs[i].hue = outputs[i].animationOffset;
-        // Use wave pattern offset for each LED to create flowing breath
-        uint8_t offsetBrightness = LEDUtils::sin8(masterBrightness + outputs[i].animationOffset/4);
-        outputs[i].brightness = offsetBrightness;
+        
+        // Randomly update target hue occasionally
+        if (random(100) < 2) {  // 2% chance each update
+            int8_t shift = random(-HUE_VARIATION, HUE_VARIATION + 1);
+            targetHues[i] = outputs[i].hue + shift;
+        }
+        
+        // Gradually shift current hue toward target
+        if (outputs[i].hue != targetHues[i]) {
+            // Find shortest path to target hue
+            int diff = targetHues[i] - outputs[i].hue;
+            if (diff > 127) diff -= 256;
+            else if (diff < -128) diff += 256;
+            
+            // Move hue closer to target
+            if (diff > 0) {
+                outputs[i].hue = outputs[i].hue + min(HUE_STEP, diff);
+            } else if (diff < 0) {
+                outputs[i].hue = outputs[i].hue - min(HUE_STEP, -diff);
+            }
+        }
+        
+        // Calculate brightness with slight offset for each LED
+        float offsetPhase = breathPosition + (float)i * 0.2f;  // Adjust 0.2 for more/less offset
+        float brightness = (sin(offsetPhase) + 1.0f) * 0.5f;
+        
+        // Apply gamma correction for smoother brightness transitions
+        brightness = brightness * brightness;  // Square for gamma correction
+        
+        outputs[i].brightness = (uint8_t)(brightness * 255);
     }
 }
