@@ -138,7 +138,7 @@ void StateManager::updatePulse() {
     static bool isRising = true;
     static uint8_t currentHue = 0;
     
-    const uint8_t MIN_BRIGHTNESS = 20;
+    const uint8_t MIN_BRIGHTNESS = 1;
     int HUE_STEP = 1;  // How quickly to transition hue (higher = faster)
 
     // Update peak position
@@ -180,12 +180,12 @@ void StateManager::updatePulse() {
         } else {
             float distance = i - peakPosition;
             float falloff = max(0.0f, 1.0f - (distance / 3.0f));
-            uint8_t brightness = (uint8_t)(falloff * falloff * 255); // Square the falloff for gamma correction
+            uint8_t brightness = (uint8_t)(falloff * falloff * 255);
             outputs[i].brightness = constrain(brightness, MIN_BRIGHTNESS, 255);
         }
     }
 
-    Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
+    // Serial.printf("%i, %i, %i, %i, %i, %i\n", outputs[0].brightness, outputs[1].brightness, outputs[2].brightness, outputs[3].brightness, outputs[4].brightness, outputs[5].brightness);
 }
 
 void StateManager::updateSparkle() {
