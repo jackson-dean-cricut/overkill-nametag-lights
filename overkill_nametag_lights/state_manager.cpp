@@ -190,7 +190,7 @@ void StateManager::updatePulse() {
 
 void StateManager::updateSparkle() {
     // Randomly update brightness and hue for random LEDs
-    if (LEDUtils::random8() < 32) {  // Random sparkle probability
+    if (LEDUtils::random8() < 16) {  // Random sparkle probability
         int led = LEDUtils::random8(MAX_OUTPUTS);
         outputs[led].hue = LEDUtils::random8();
         outputs[led].brightness = LEDUtils::random8(128, 255);  // Brighter range for better visibility
@@ -199,8 +199,8 @@ void StateManager::updateSparkle() {
     // Gradually dim all LEDs
     for (int i = 0; i < MAX_OUTPUTS; i++) {
         outputs[i].isOn = true;
-        if (outputs[i].brightness > 8) {  // Gradual fade out
-            outputs[i].brightness -= 8;
+        if (outputs[i].brightness > 0) {  // Gradual fade out
+            outputs[i].brightness = max((int)outputs[i].brightness - 2, 0);
         }
     }
 }
