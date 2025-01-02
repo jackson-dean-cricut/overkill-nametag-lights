@@ -101,7 +101,7 @@ Each device has:
 Update any device wirelessly:
 1. Connect to the ESP's WiFi network
 2. Upload new firmware through Arduino IDE
-3. Watch the pretty progress indicator on the LED strip! 🌈
+3. Watch the pretty progress indicator on the LED strip! (TODO) 🌈
 
 ## 🛠️ Future Improvements
 
@@ -110,6 +110,11 @@ Update any device wirelessly:
 - [ ] Add configuration storage
 - [ ] Create mobile app control interface
 - [ ] Add sound reactivity
+- [ ] Turn off LEDs overnight (for when people forget)
+- [ ] Remember user's color selection and restore it after party mode
+- [ ] Party mode only for users that are here
+- [ ] Put RGB LEDs for the user's buttons
+- [ ] Interface with seat occupancy sensors
 
 ## 🐛 Troubleshooting
 
