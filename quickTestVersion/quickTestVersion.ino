@@ -6,7 +6,7 @@
 #define NUM_LEDS    6
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define BRIGHTNESS  128    // Set to about 50%
+#define BRIGHTNESS  32    // Set to about 50%
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
