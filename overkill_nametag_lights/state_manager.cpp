@@ -123,7 +123,7 @@ void StateManager::updateAnimations() {
 // Animation pattern implementations
 void StateManager::updateRainbow() {
     static float offset = 0;
-    const float RAINBOW_SPEED = 0.2f;
+    const float RAINBOW_SPEED = 0.1f;
     
     offset = fmod(offset + RAINBOW_SPEED * animState.speed, 256);
     
