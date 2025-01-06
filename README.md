@@ -130,7 +130,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- FastLED library developers
+- Neopixel library developers
 - ESP8266 community
 - Coffee ☕
 
